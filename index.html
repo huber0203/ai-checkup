@@ -1,0 +1,358 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"></head><body><title>AI 短劇健檢</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Archivo+Black&display=swap">
+<style>
+/* 版面：單欄問答卡，像片場的拍板 — 深色底、場記橘當重點 */
+:root{
+  --bg:#f5f2ee;--card:#ffffff;--ink:#1b1714;--sub:#5e554d;--mute:#8d837a;--line:#e3dcd4;
+  --acc:#e2541c;--acc-ink:#ffffff;--acc-soft:#fde9df;--clap:#1b1714;--clap-ink:#ffffff;
+  --good:#1d9a6c;--warn:#d9861a;
+  --f-d:"Archivo Black","Noto Sans TC",system-ui,sans-serif;--f-b:"Noto Sans TC","PingFang TC",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141110;--card:#1f1a17;--ink:#f4eee8;--sub:#c3b8ad;--mute:#8f857b;--line:#352d28;
+  --acc:#ff7a3d;--acc-ink:#1b1714;--acc-soft:#3a2418;--clap:#0b0908;--clap-ink:#f4eee8;--good:#3cc99c;--warn:#f2a640;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141110;--card:#1f1a17;--ink:#f4eee8;--sub:#c3b8ad;--mute:#8f857b;--line:#352d28;
+  --acc:#ff7a3d;--acc-ink:#1b1714;--acc-soft:#3a2418;--clap:#0b0908;--clap-ink:#f4eee8;--good:#3cc99c;--warn:#f2a640;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-b);font-size:16px;line-height:1.55}
+.top{background:var(--clap);color:var(--clap-ink);padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background-image:repeating-linear-gradient(135deg,transparent 0 18px,rgba(255,255,255,.06) 18px 36px)}
+.top .in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.top b{font-size:18px;font-weight:900;letter-spacing:.06em}
+.top .tag{font-family:var(--f-d);font-size:13px;letter-spacing:.12em;background:var(--acc);color:#fff;padding:3px 8px;border-radius:4px}
+.top span{margin-left:auto;font-size:13px;opacity:.75}
+main{max-width:760px;margin:0 auto;padding-block:22px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+h1{font-size:clamp(26px,5vw,36px);font-weight:900;line-height:1.25;margin:0;text-wrap:balance}
+h2{font-size:clamp(20px,3.6vw,26px);font-weight:900;line-height:1.3;margin:0;text-wrap:balance}
+h3{font-size:17px;font-weight:800;margin:0}
+p{margin:0}
+.sub{color:var(--sub)}
+.mute{color:var(--mute);font-size:13px}
+.lbl{font-size:12px;letter-spacing:.14em;color:var(--acc);font-weight:800}
+.btn{appearance:none;border:0;border-radius:12px;padding:14px 22px;font:inherit;font-weight:800;font-size:17px;cursor:pointer;background:var(--acc);color:var(--acc-ink);min-height:52px}
+.btn.ghost{background:transparent;color:var(--sub);border:1px solid var(--line)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:focus-visible,.opt:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
+input[type=text]{font:inherit;font-size:18px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),#ffb34d);border-radius:99px;transition:width .5s var(--ease)}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+.opt{appearance:none;text-align:left;font:inherit;font-size:17px;font-weight:600;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;gap:12px;align-items:center;min-height:58px}
+.opt .k{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--mute);display:grid;place-items:center;font-size:14px;color:transparent}
+.opt.m .k{border-radius:6px}
+.opt[aria-pressed="true"]{border-color:var(--acc);background:var(--acc-soft)}
+.opt[aria-pressed="true"] .k{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.score{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center}
+.ring{width:150px;height:150px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .v b{font-family:var(--f-d);font-size:46px;line-height:1}
+.ring .v small{display:block;font-size:12px;color:var(--mute)}
+.pill{display:inline-block;align-self:flex-start;background:var(--acc);color:var(--acc-ink);border-radius:99px;padding:4px 14px;font-weight:800;font-size:14px}
+.dims{display:flex;flex-direction:column;gap:12px}
+.dim{display:grid;grid-template-columns:96px 1fr 44px;gap:10px;align-items:center;font-size:15px}
+.dim .tr{position:relative;height:14px;border-radius:99px;background:var(--line)}
+.dim .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+.dim .tr .to{background:var(--acc-soft);border:1px dashed var(--acc)}
+.dim .tr .now{background:var(--acc)}
+.dim em{font-style:normal;font-family:var(--f-d);text-align:right;color:var(--sub);font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:18px;font-size:13px;color:var(--mute);flex-wrap:wrap}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend span:before{content:"";width:14px;height:10px;border-radius:4px;background:var(--acc)}
+.legend span.t:before{background:var(--acc-soft);border:1px dashed var(--acc)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}
+.stat{background:var(--acc-soft);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat b{font-family:var(--f-d);font-size:34px;color:var(--acc);line-height:1.1}
+.stat b small{font-size:16px;font-family:var(--f-b);font-weight:800}
+.fix{display:grid;gap:10px}
+.fix div{border-left:4px solid var(--warn);padding:4px 0 4px 14px}
+.fix div.ok{border-color:var(--good)}
+.shot{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px}
+.shot div{border-radius:12px;padding:14px;background:var(--bg);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px;min-width:0}
+.shot div b{font-family:var(--f-d);font-size:13px;letter-spacing:.1em;color:var(--acc)}
+.shot div span{font-size:15px}
+.plan{border:2px solid var(--acc);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;background:var(--card)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px}
+.step{border-radius:12px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.step.on{border-color:var(--acc)}
+.step b{font-size:15px}
+.step span{font-size:13px;color:var(--sub)}
+.step.off{opacity:.45}
+.wk{display:flex;flex-direction:column;gap:8px}
+.wk div{display:grid;grid-template-columns:5.5em 1fr;gap:10px;font-size:15px}
+.wk div b{color:var(--acc);font-weight:800}
+details{border:1px dashed var(--mute);border-radius:14px;padding:14px 18px;background:var(--card)}
+details summary{cursor:pointer;font-weight:800;color:var(--sub)}
+details[open] summary{margin-bottom:12px}
+.cheat{display:flex;flex-direction:column;gap:12px;font-size:15px}
+.cheat q{display:block;background:var(--bg);border-radius:10px;padding:10px 14px;quotes:"「" "」"}
+.cheat ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.disc{font-size:12px;color:var(--mute)}
+@media (max-width:520px){.card{padding:18px}.score{grid-template-columns:1fr;justify-items:center;text-align:center}.score .pill{align-self:center}.dim{grid-template-columns:78px 1fr 38px;font-size:14px}}
+/* 健檢代碼與業務頁 */
+.codebox{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border:2px dashed var(--acc);border-radius:16px;padding:18px;background:var(--acc-soft)}
+.codebox b{font-family:var(--f-d);font-size:clamp(34px,9vw,48px);letter-spacing:.12em;color:var(--ink)}
+.staff-tbl{overflow-x:auto}
+.staff-tbl table{border-collapse:collapse;width:100%;min-width:860px;font-size:14px}
+.staff-tbl th,.staff-tbl td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.staff-tbl th{font-size:12px;color:var(--mute);font-weight:800;letter-spacing:.06em}
+.staff-tbl td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.fld{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}
+.fld label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px;color:var(--sub)}
+.msg{font-weight:700}.msg.err{color:var(--warn)}.msg.ok{color:var(--good)}
+/* 動畫 */
+:root{--ease:cubic-bezier(.2,.8,.2,1)}
+@keyframes inR{from{opacity:0;transform:translateX(48px)}to{opacity:1;transform:none}}
+@keyframes inL{from{opacity:0;transform:translateX(-48px)}to{opacity:1;transform:none}}
+@keyframes up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(.95)}70%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes tick{from{transform:scale(0) rotate(-40deg)}to{transform:scale(1) rotate(0)}}
+@keyframes clap{0%,55%{transform:rotate(-26deg)}68%{transform:rotate(2deg)}76%{transform:rotate(-5deg)}84%,100%{transform:rotate(0)}}
+@keyframes clapLoop{0%,30%{transform:rotate(-26deg)}42%{transform:rotate(1deg)}50%,100%{transform:rotate(0)}}
+@keyframes flash{0%,60%{opacity:0}68%{opacity:.9}100%{opacity:0}}
+@keyframes strip{from{background-position:0 0}to{background-position:-96px 0}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(226,84,28,0)}50%{box-shadow:0 0 0 8px rgba(226,84,28,.18)}}
+@keyframes stamp{0%{opacity:0;transform:scale(2.2) rotate(-8deg)}60%{opacity:1;transform:scale(.92) rotate(-3deg)}100%{opacity:1;transform:scale(1) rotate(-3deg)}}
+.go-r{animation:inR .5s var(--ease) both}
+.go-l{animation:inL .5s var(--ease) both}
+.opts .opt{animation:up .45s var(--ease) both;animation-delay:calc(var(--d,0) * 60ms + 140ms);transition:transform .18s var(--ease),border-color .18s,background .18s,box-shadow .18s}
+.opt:hover{transform:translateY(-3px);border-color:var(--acc);box-shadow:0 8px 20px rgba(0,0,0,.08)}
+.opt.hit{animation:pop .32s var(--ease) both}
+.opt[aria-pressed="true"] .k{animation:tick .28s var(--ease) both}
+.btn{transition:transform .15s var(--ease),filter .15s}
+.btn:not(:disabled):hover{transform:translateY(-2px);filter:brightness(1.06)}
+.btn:not(:disabled):active{transform:scale(.97)}
+#go{animation:glow 1.8s ease-in-out 1.4s infinite}
+.rise{animation:up .6s var(--ease) both;animation-delay:calc(var(--d,0) * 130ms)}
+.hero{display:flex;gap:18px;align-items:center}
+.clap{flex:none;width:76px;height:70px;position:relative}
+.clap svg{width:100%;height:100%;overflow:visible}
+.clap .arm{transform-origin:6px 22px;animation:clap 1.3s var(--ease) .2s both}
+.clap .fl{position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,170,90,.55),transparent);opacity:0;animation:flash 1.3s ease-out .2s both;pointer-events:none}
+.load{align-items:center;text-align:center;padding-block:44px}
+.load .clap{width:96px;height:88px}
+.load .clap .arm{animation:clapLoop .7s var(--ease) infinite}
+.film{width:min(320px,100%);height:28px;border-radius:6px;background:var(--clap);position:relative;overflow:hidden}
+.film:before{content:"";position:absolute;inset:4px 0;background:repeating-linear-gradient(90deg,var(--bg) 0 10px,transparent 10px 24px);opacity:.5;animation:strip .5s linear infinite;height:5px}
+.film:after{content:"";position:absolute;left:0;right:0;bottom:4px;height:5px;background:repeating-linear-gradient(90deg,var(--bg) 0 10px,transparent 10px 24px);opacity:.5;animation:strip .5s linear infinite}
+.film i{position:absolute;left:0;top:11px;height:6px;background:var(--acc);border-radius:3px;width:0;transition:width 1.6s cubic-bezier(.4,0,.2,1)}
+.ldt{font-weight:800;font-size:18px;min-height:1.6em}
+.ring circle.pg{transition:stroke-dashoffset 1.3s cubic-bezier(.2,.8,.2,1) .15s}
+.dim .tr i{transition:width 1s var(--ease)}
+.score .pill{animation:stamp .5s var(--ease) 1.1s both}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+
+<div class="top"><div class="in"><span class="tag">AI 短劇</span><b>個人 AI 健檢</b><span>約 3 分鐘</span></div></div>
+<main id="app" aria-live="polite"></main>
+
+<script>
+const Q=[
+ {id:'job',t:'你現在的工作是？',o:['上班族','自己開店／品牌','自由接案','學生','轉職中','其他']},
+ {id:'acct',t:'你現在有在經營自己的帳號嗎？',o:['還沒有帳號','有帳號，但很少發','固定在發，粉絲 1,000 以下','粉絲 1,000～1 萬','粉絲 1 萬以上']},
+ {id:'used',t:'這些 AI 你用過哪些？',m:1,o:['聊天問答（ChatGPT 之類）','用 AI 生圖','用 AI 做影片','AI 配音','數字人對嘴','都還沒用過']},
+ {id:'stuck',t:'做短影音，你最常卡在哪裡？',o:['不敢露臉、沒時間拍','剪一支要一整晚','發了沒人看','不知道要拍什麼','不知道怎麼靠它賺錢']},
+ {id:'goal',t:'學會之後，最想做出什麼？',m:1,o:['數字人幫我講','AI 爽劇、短劇','穩定經營自己的帳號','接業配、幫人代操','幫自己的店或品牌做影片','其他']},
+ {id:'hrs',t:'你每週能花多少時間做影片？',o:['3 小時以內','3～6 小時','6～10 小時','10 小時以上']},
+ {id:'speed',t:'你希望多久做出第一支能發的作品？',o:['今晚就想試','1 個月內','2 個月內']},
+];
+const CLS={1:['數字人班','一張照片做出數字人・2 個月 8 週'],2:['經營班','穩定更新，經營出千人帳號'],3:['變現班','接業配、開團購、做商品']};
+const WK=[['第 1 週','一張帳號定位卡'],['第 2 週','30 個選題清單'],['第 4 週','你的 AI 數字人'],['第 5 週','第一支 AI 口播短影音'],['第 7 週','一週 5 支自動排程'],['第 8 週','期末作品上架']];
+const FIX={
+ '不敢露臉、沒時間拍':['數字人幫你講','一張正面照加一段聲音，數字人代你上鏡，不用露臉、不用架設備。'],
+ '剪一支要一整晚':['剪輯交給 AI','用一段話讓 AI 照分鏡表接片、上字幕、配樂，一個晚上做完一支。'],
+ '發了沒人看':['先學爽劇公式','鉤子、壓迫、反轉、打臉、懸念五個節拍，開頭 3 秒就抓住人。'],
+ '不知道要拍什麼':['AI 幫你找選題','第 2 週就帶走 30 個選題清單，照著做不用每天想。'],
+ '不知道怎麼靠它賺錢':['報價和接案一起教','流量、業配、代操三種收入，報價單怎麼開都有範本。'],
+};
+let S={name:'',i:-1,a:{}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const app=$('#app');
+const CLAP=`<div class="clap" aria-hidden="true"><span class="fl"></span><svg viewBox="0 0 76 70"><rect x="2" y="24" width="70" height="44" rx="5" fill="var(--clap)"/><g fill="var(--acc)"><path d="M10 24h10l-8 12H2z"/><path d="M30 24h10l-8 12H22z"/><path d="M50 24h10l-8 12H42z"/></g><rect x="10" y="44" width="40" height="4" rx="2" fill="var(--clap-ink)" opacity=".5"/><rect x="10" y="54" width="28" height="4" rx="2" fill="var(--clap-ink)" opacity=".3"/><g class="arm"><rect x="2" y="12" width="70" height="11" rx="3" fill="var(--clap)"/><g fill="var(--clap-ink)"><path d="M12 12h9l-6 11H6z"/><path d="M32 12h9l-6 11h-9z"/><path d="M52 12h9l-6 11h-9z"/></g></g></svg></div>`;
+let DIR=1,PREV=0;
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const AL='23456789ABCDEFGHJKLMNPQRSTUVWXYZ',ORD=['job','acct','used','stuck','goal','hrs','speed'];
+const RAD=q=>q.m?(1<<q.o.length):q.o.length;
+function encode(a){let n=0;for(const k of ORD){const q=Q.find(x=>x.id===k);let v=0;if(q.m)(a[k]||[]).forEach(o=>{const i=q.o.indexOf(o);if(i>=0)v|=1<<i});else v=Math.max(0,q.o.indexOf(a[k]));n=n*RAD(q)+v}
+ let c='';for(let i=0;i<6;i++){c=AL[n%32]+c;n=Math.floor(n/32)}let sum=0;for(const ch of c)sum+=AL.indexOf(ch);return c.slice(0,3)+'-'+c.slice(3)+AL[sum%32]}
+function decode(code){const c=String(code).toUpperCase().replace(/[^0-9A-Z]/g,'');if(c.length!==7)return null;let n=0,sum=0;
+ for(let i=0;i<6;i++){const d=AL.indexOf(c[i]);if(d<0)return null;sum+=d;n=n*32+d}if(AL[sum%32]!==c[6])return null;
+ const a={};for(const k of [...ORD].reverse()){const q=Q.find(x=>x.id===k),r=RAD(q),v=n%r;n=Math.floor(n/r);a[k]=q.m?q.o.filter((_,i)=>v&(1<<i)):q.o[v]}
+ return n===0?a:null}
+let DB=null,DBP=null;const getDB=()=>DBP||(DBP=(window.claude&&claude.use?claude.use('db'):Promise.resolve(null)).then(d=>DB=d).catch(()=>null));
+async function saveRec(rec){try{const db=await getDB();if(!db)return false;await db.collection('records').doc(rec.code.replace('-','')+'-'+Date.now().toString(36)).set(rec);return true}catch(e){return false}}
+const STAFF_CODE=null;
+
+function intro(){
+ app.innerHTML=`<section class="card go-r">
+  <div class="hero">${CLAP}<div><p class="lbl">講座限定・每人一次</p>
+  <h1>3 分鐘，看你的 AI 短影音能力在哪一階</h1></div></div>
+  <p class="sub">回答 7 題，馬上知道你現在在哪一階、適合從哪一班開始，還有你的第一支片怎麼做。</p>
+  <label for="nm"><h3>怎麼稱呼你？</h3></label>
+  <input id="nm" type="text" maxlength="12" placeholder="例如：小美" value="${esc(S.name)}" autocomplete="off">
+  <div class="actions"><span></span><button class="btn" id="go">開始健檢</button></div>
+ </section>`;
+ const go=()=>{S.name=$('#nm').value.trim();DIR=1;PREV=0;S.i=0;render()};
+ $('#go').onclick=go;$('#nm').onkeydown=e=>{if(e.key==='Enter')go()};
+}
+function question(){
+ const q=Q[S.i],cur=S.a[q.id]||(q.m?[]:null);
+ app.innerHTML=`<div class="bar" aria-hidden="true"><i style="width:${PREV}%"></i></div>
+ <section class="card ${DIR>0?'go-r':'go-l'}">
+  <p class="lbl">第 ${S.i+1} 題／共 ${Q.length} 題${q.m?'・可複選':''}</p>
+  <h2>${q.t}</h2>
+  <div class="opts" role="${q.m?'group':'radiogroup'}">${q.o.map((o,k)=>`<button class="opt${q.m?' m':''}" style="--d:${k}" data-k="${k}" aria-pressed="${q.m?cur.includes(o):cur===o}"><span class="k">✓</span>${o}</button>`).join('')}</div>
+  <div class="actions"><button class="btn ghost" id="back">上一題</button><button class="btn" id="next" ${q.m?(cur.length?'':'disabled'):'hidden'}>${S.i===Q.length-1?'看健檢結果':'下一題'}</button></div>
+ </section>`;
+ app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+  const o=q.o[+b.dataset.k];
+  if(q.m){let v=S.a[q.id]||[];
+   if(o==='都還沒用過')v=v.includes(o)?[]:[o];
+   else{v=v.filter(x=>x!=='都還沒用過');v=v.includes(o)?v.filter(x=>x!==o):[...v,o]}
+   S.a[q.id]=v;app.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',v.includes(q.o[+x.dataset.k])));b.classList.remove('hit');void b.offsetWidth;b.classList.add('hit');
+   const n=$('#next');n.disabled=!v.length;}
+  else{S.a[q.id]=o;app.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');b.classList.add('hit');setTimeout(next,RM?60:340)}
+ });
+ const pct=S.i/Q.length*100;requestAnimationFrame(()=>requestAnimationFrame(()=>{const bi=app.querySelector('.bar i');if(bi)bi.style.width=pct+'%';PREV=pct}));
+ $('#back').onclick=()=>{DIR=-1;S.i--;render()};
+ const n=$('#next');if(n)n.onclick=next;
+ const f=app.querySelector('.opt[aria-pressed="true"]')||app.querySelector('.opt');f&&f.focus({preventScroll:true});
+}
+function next(){DIR=1;S.i++;render()}
+
+function calc(A){
+ const a=A||S.a,used=(a.used||[]).filter(x=>x!=='都還沒用過'),goal=a.goal||[];
+ const has=x=>used.some(u=>u.includes(x));
+ const acctLv={'還沒有帳號':0,'有帳號，但很少發':1,'固定在發，粉絲 1,000 以下':2,'粉絲 1,000～1 萬':3,'粉絲 1 萬以上':4}[a.acct]||0;
+ let score=15+used.length*10+acctLv*6;
+ if(a.job==='自由接案')score+=4;
+ score=Math.max(12,Math.min(92,score));
+ const level=score<40?['起步階段','先做出一支能發的作品，第一個月就看得到成果']:score<65?['上手階段','你已經會用 AI，差的是穩定做出能發、有人看的作品']:['進階階段','你已經能做作品，可以往連載、接案和變現前進'];
+ const dims=[
+  ['角色與畫面',18+(has('生圖')?35:0)+(has('數字人')?12:0),85],
+  ['影片製作',12+(has('影片')?30:0)+(has('配音')?15:0)+(has('數字人')?15:0),85],
+  ['腳本企劃',18+(has('聊天')?30:0)+(acctLv>=2?10:0),85],
+  ['帳號經營',10+acctLv*16,goal.some(g=>/帳號|接業配/.test(g))?85:70],
+  ['變現接案',10+(/接案|開店/.test(a.job||'')?18:0)+(acctLv>=3?20:0),goal.some(g=>/接業配|品牌/.test(g))?80:60],
+ ].map(([n,v,t])=>{v=Math.min(v,90);return [n,v,Math.max(t,v)]});
+ let tier=1;
+ if(acctLv>=3&&used.length>=3)tier=2;
+ if(acctLv>=4&&used.length>=4&&goal.some(g=>/接業配/.test(g)))tier=3;
+ const save={'3 小時以內':'一個晚上','3～6 小時':'一週 1～2 支','6～10 小時':'一週 3～4 支','10 小時以上':'一週 5 支以上'}[a.hrs]||'一週 1～2 支';
+ return {score,level,dims,tier,used,goal,save,acctLv};
+}
+function firstFilm(goal){
+ if(goal.some(g=>/爽劇/.test(g)))return ['你的第一支：一集 30 秒爽劇',[['① 鉤子','想一個第一秒就出事的開場，丟給 AI 寫劇本'],['② 6 格分鏡','附上角色設定圖，同一個對話裡畫完 6 格'],['③ 剪成片','一段話讓 AI 接片、上字幕、配音效']]];
+ if(goal.some(g=>/品牌|店/.test(g)))return ['你的第一支：店家 30 秒短片',[['① 找故事','把店裡最常被問的一件事寫成「被嫌棄 → 反轉 → 真香」'],['② 畫出來','用店裡的照片當參考，AI 生出 6 格畫面'],['③ 剪成片','加上店名字卡和一句行動呼籲']]];
+ return ['你的第一支：數字人口播 30 秒',[['① 一張正面照','正面、看鏡頭、光線均勻，留一點頭頂空間'],['② 一段短稿','用講的寫，一句不超過 15 個字，用刪節號放停頓'],['③ 對嘴成片','先做 10 秒測試，滿意再做完整版']]];
+}
+function ring(v){const r=64,c=2*Math.PI*r;return `<svg viewBox="0 0 150 150" aria-hidden="true"><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--line)" stroke-width="12"/><circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--acc)" stroke-width="12" stroke-linecap="round" class="pg" stroke-dasharray="${c}" stroke-dashoffset="${c}" data-to="${c*(1-v/100)}"/></svg>`}
+function loading(){
+ const T=['讀取你的回答','比對 5 項能力','挑出最適合你的班別'];
+ app.innerHTML=`<section class="card load go-r">${CLAP}<p class="ldt" id="ldt">${T[0]}…</p><div class="film"><i></i></div><p class="mute">AI 健檢分析中</p></section>`;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{const f=app.querySelector('.film i');if(f)f.style.width='100%'}));
+ let k=0;const iv=setInterval(()=>{k++;const e=$('#ldt');if(e&&T[k])e.textContent=T[k]+'…'},560);
+ setTimeout(()=>{clearInterval(iv);result()},1750);
+}
+function countUp(el,to,ms){if(RM){el.textContent=to;return}const t0=performance.now();const f=()=>{const p=Math.max(0,Math.min(1,(performance.now()-t0)/ms)),e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e);if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
+function result(){
+ const R=calc(),a=S.a,nm=S.name?esc(S.name):'你',fix=FIX[a.stuck],ff=firstFilm(R.goal),cls=CLS[R.tier];
+ const speed=a.speed==='今晚就想試'?'今天下半場工作坊就帶你做第一支，回家照同樣步驟再做一次':a.speed==='1 個月內'?'數字人班第 4 週就有你的 AI 數字人，第 5 週發第一支口播':'2 個月 8 週，第 8 週把作品真的上架';
+ app.innerHTML=`<section class="card rise" style="--d:0">
+  <p class="lbl">${nm} 的 AI 健檢報告</p>
+  <div class="score">
+   <div class="ring">${ring(R.score)}<div class="v"><div><b id="sc">0</b><small>AI 短影音指數</small></div></div></div>
+   <div style="display:flex;flex-direction:column;gap:10px;min-width:0"><span class="pill">${R.level[0]}</span><h2>${R.level[1]}</h2></div>
+  </div>
+ </section>
+ <section class="card rise" style="--d:1">
+  <h3>五項能力：現在 vs 學完</h3>
+  <div class="dims">${R.dims.map(([n,v,t])=>`<div class="dim"><span>${n}</span><div class="tr"><i class="to" style="width:0" data-w="${t}"></i><i class="now" style="width:0" data-w="${v}"></i></div><em>${v}</em></div>`).join('')}</div>
+  <div class="legend"><span>現在</span><span class="t">學完數字人班＋經營班</span></div>
+ </section>
+ <section class="stats rise" style="--d:2">
+  <div class="stat"><span class="mute">照你的時間，學會後可以做到</span><b>${R.save}</b><span class="mute">每週 ${esc(a.hrs||'—')}</span></div>
+  <div class="stat"><span class="mute">你已經用過的 AI</span><b><span class="cu" data-n="${R.used.length}">0</span><small> 種</small></b><span class="mute">${R.used.length?'有基礎，上手更快':'從零開始也跟得上'}</span></div>
+  <div class="stat"><span class="mute">想做出的作品</span><b><span class="cu" data-n="${R.goal.length}">0</span><small> 項</small></b><span class="mute">課程全部涵蓋</span></div>
+ </section>
+ ${fix?`<section class="card rise" style="--d:3"><h3>你最卡的地方，課堂上怎麼解</h3><div class="fix"><div><b>${esc(a.stuck)}</b></div><div class="ok"><b>${fix[0]}</b><p class="sub">${fix[1]}</p></div></div></section>`:''}
+ <section class="card rise" style="--d:4"><h3>${ff[0]}</h3><div class="shot">${ff[1].map(([k,v])=>`<div><b>${k}</b><span>${v}</span></div>`).join('')}</div></section>
+ <section class="plan rise" style="--d:5">
+  <p class="lbl">適合你從這裡開始</p>
+  <h2>第 1＋2 階・數字人班＋經營班</h2>
+  <p class="sub">先做出你的數字人，再穩定經營出千人帳號・每週 3 小時・實體小班，每班 5 人以內</p>
+  <div class="steps">${[1,2,3].map(t=>`<div class="step ${t<=2?'on':'off'}"><b>第 ${t} 階　${CLS[t][0]}</b><span>${CLS[t][1]}</span></div>`).join('')}</div>
+  ${1?`<h3>第 1 階 8 週，你會帶走這些</h3><div class="wk">${WK.map(([w,x])=>`<div><b>${w}</b><span>${x}</span></div>`).join('')}</div>`:''}
+  <p class="sub"><b>成果節奏：</b>${speed}</p>
+ </section>
+ <section class="codebox rise" style="--d:6"><span class="mute">把這個畫面給現場小幫手看</span><span class="lbl">你的健檢代碼</span><b>${encode(a)}</b></section>
+ <p class="disc rise" style="--d:6">本健檢依你的回答估算，分數供選課參考。成果與收入依個人投入而異。</p>
+ <div class="actions rise" style="--d:6"><button class="btn ghost" id="redo">修改答案</button><button class="btn" id="new">換下一位</button></div>`;
+ $('#redo').onclick=()=>{DIR=-1;PREV=0;S.i=0;render()};
+ $('#new').onclick=()=>{DIR=1;PREV=0;S={name:'',i:-1,a:{}};render()};
+ $('#redo').addEventListener('click',()=>{S.saved=0});
+ window.scrollTo({top:0});
+ if(!S.saved){S.saved=1;saveRec({code:encode(a),name:S.name||'',phone:'',note:'學員自填',score:R.score,level:R.level[0],answers:a,at:Date.now()})}
+ const pg=app.querySelector('.ring .pg');
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  if(pg)pg.style.strokeDashoffset=pg.dataset.to;
+  countUp($('#sc'),R.score,1300);
+  app.querySelectorAll('.dim').forEach((d,k)=>d.querySelectorAll('.tr i').forEach(x=>{x.style.transitionDelay=(RM?0:400+k*110)+'ms';x.style.width=x.dataset.w+'%'}));
+  app.querySelectorAll('.cu').forEach(x=>setTimeout(()=>countUp(x,+x.dataset.n,800),RM?0:500));
+ }));
+}
+let UNSUB=null,ROWS=[];
+function staffGate(){
+ let ok=false;try{ok=sessionStorage.getItem('stf')==='1'}catch(e){}
+ if(ok)return staff();
+ app.innerHTML=`<section class="card go-r"><p class="lbl">工作人員專區</p><h2>輸入統編，查看健檢紀錄</h2>
+ <label for="tx"><h3>統一編號</h3></label><input id="tx" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="8 碼數字">
+ <p class="msg err" id="gm" aria-live="polite"></p>
+ <div class="actions"><a class="btn ghost" href="#" style="text-decoration:none;display:inline-flex;align-items:center">回健檢首頁</a><button class="btn" id="tg">進入</button></div></section>`;
+ const go=()=>{if($('#tx').value.trim()===STAFF_CODE){try{sessionStorage.setItem('stf','1')}catch(e){}staff()}else $('#gm').textContent='統編不對，請再確認一次。'};
+ $('#tg').onclick=go;$('#tx').onkeydown=e=>{if(e.key==='Enter')go()};$('#tx').focus();
+}
+function fmtT(t){const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+function staffRows(){
+ const tb=$('#rows');if(!tb)return;
+ $('#cnt').textContent=ROWS.length;
+ if(!ROWS.length){tb.innerHTML=`<tr><td colspan="9" class="sub">還沒有紀錄。學員填完會出現「健檢代碼」，在上面輸入代碼就會存進來。</td></tr>`;return}
+ tb.innerHTML=ROWS.map(r=>{const a=r.answers||{};return `<tr><td class="n">${fmtT(r.at)}</td><td><b>${esc(r.name||'—')}</b><br><span class="mute">${esc(r.phone||'')}</span></td><td class="n">${esc(r.code)}</td><td class="n">${esc(String(r.score))}<br><span class="mute">${esc(r.level||'')}</span></td><td>${esc(a.stuck||'—')}</td><td>${esc((a.goal||[]).join('、')||'—')}</td><td>${esc(a.acct||'—')}<br><span class="mute">${esc(a.job||'')}</span></td><td>${esc(a.hrs||'—')}<br><span class="mute">${esc(a.speed||'')}</span></td><td>${esc(r.note||'')}</td></tr>`}).join('');
+}
+async function staff(){
+ app.innerHTML=`<section class="card go-r"><p class="lbl">工作人員專區</p><h2>新增一筆健檢紀錄</h2>
+  <div class="fld"><label>健檢代碼<input id="sc0" type="text" maxlength="9" placeholder="例如 7KQ-M2PX" autocomplete="off"></label><label>稱呼<input id="sn" type="text" maxlength="20" autocomplete="off"></label><label>手機<input id="sp" type="text" inputmode="tel" maxlength="20" autocomplete="off"></label><label>備註<input id="sm" type="text" maxlength="60" placeholder="例如：已報名、想再考慮" autocomplete="off"></label></div>
+  <p class="msg" id="sv" aria-live="polite"></p>
+  <div class="actions"><span class="mute">代碼在學員結果頁最下面</span><button class="btn" id="sa">存進紀錄</button></div></section>
+ <section class="card go-r"><div class="actions" style="align-items:center"><h2>全部紀錄　<span class="pill" id="cnt">0</span></h2><button class="btn ghost" id="lo">登出</button></div>
+  <div class="staff-tbl"><table><thead><tr><th>時間</th><th>稱呼／手機</th><th>代碼</th><th>分數</th><th>最卡的地方</th><th>想做出什麼</th><th>帳號／工作</th><th>每週時間／想多快</th><th>備註</th></tr></thead><tbody id="rows"><tr><td colspan="9" class="sub">讀取中…</td></tr></tbody></table></div></section>`;
+ $('#lo').onclick=()=>{try{sessionStorage.removeItem('stf')}catch(e){}if(UNSUB){UNSUB();UNSUB=null}location.hash='';render()};
+ const msg=(t,c)=>{const e=$('#sv');e.textContent=t;e.className='msg '+(c||'')};
+ const db=await getDB();
+ if(!db){msg('這個裝置沒辦法存取紀錄：請用已登入、有這頁編輯權限的 Claude 帳號打開。','err');$('#rows').innerHTML='<tr><td colspan="9" class="sub">無法讀取紀錄。</td></tr>';return}
+ const timer=setTimeout(()=>{if(!ROWS.length)$('#rows').innerHTML='<tr><td colspan="9" class="sub">讀不到紀錄：可能是這個帳號沒有權限。</td></tr>'},10000);
+ if(UNSUB)UNSUB();
+ UNSUB=db.collection('records').orderBy('at','desc').limit(500).onSnapshot(sn=>{clearTimeout(timer);ROWS=sn.docs.map(d=>d.data());staffRows()},()=>{clearTimeout(timer);$('#rows').innerHTML='<tr><td colspan="9" class="sub">讀不到紀錄：這個帳號沒有權限。</td></tr>'});
+ $('#sa').onclick=async()=>{
+  const code=$('#sc0').value.trim(),a=decode(code);
+  if(!a){msg('代碼不對，請再對一次學員畫面上的代碼。','err');return}
+  const R=calc(a),c=encode(a);
+  $('#sa').disabled=true;
+  const ok=await saveRec({code:c,name:$('#sn').value.trim(),phone:$('#sp').value.trim(),note:$('#sm').value.trim(),score:R.score,level:R.level[0],answers:a,at:Date.now()});
+  $('#sa').disabled=false;
+  if(ok){msg(`已存進紀錄：${c}`,'ok');['sc0','sn','sp','sm'].forEach(i=>$('#'+i).value='');$('#sc0').focus()}
+  else msg('存不進去：請確認這個帳號有這頁的編輯權限。','err');
+ };
+}
+function render(){if(S.i<0)intro();else if(S.i>=Q.length)(RM?result:loading)();else question()}
+addEventListener('hashchange',()=>{if(UNSUB&&location.hash!=='#staff'){UNSUB();UNSUB=null}if(location.hash!=='#staff')S={name:'',i:-1,a:{}};render()});
+render();
+</script>
+</body></html>
